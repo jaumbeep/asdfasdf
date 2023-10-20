@@ -1,0 +1,38 @@
+import socket
+import struct
+
+def init_raw_socket(interface):
+    try:
+        raw_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(3))
+        raw_socket.bind((interface, 0))
+        return raw_socket
+    except socket.error as e:
+        print(f"Erro ao criar o socket: {e}")
+        return None
+
+def parse_packet(packet):
+    eth_length = 14
+    eth_header = packet[:eth_length]
+    eth_header = struct.unpack("!6s6s2s", eth_header)
+
+    dst_mac = ':'.join(['%02x' % b for b in eth_header[0]])
+    src_mac = ':'.join(['%02x' % b for b in eth_header[1]])
+    proto = eth_header[2].hex()
+
+    return dst_mac, src_mac, proto
+
+def capture_packets(interface):
+    raw_socket = init_raw_socket(interface)
+    if raw_socket is None:
+        return
+
+    try:
+        while True:
+            packet = raw_socket.recvfrom(65535)[0]
+            dst_mac, src_mac, proto = parse_packet(packet)
+            print(f"Destino: {dst_mac}, Origem: {src_mac}, Protocolo: 0x{proto}")
+
+    except KeyboardInterrupt:
+        print("Captura de pacotes encerrada.")
+
+capture_packets("eth0")

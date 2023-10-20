@@ -27,9 +27,9 @@ def capture_packets(interface, output_file):
     if raw_socket is None:
         return
 
-    try:
-        data_to_write = []
+    data_to_write = []
 
+    try:
         while True:
             packet = raw_socket.recvfrom(65535)[0]
             dst_mac, src_mac, proto = parse_packet(packet)
@@ -48,9 +48,14 @@ def capture_packets(interface, output_file):
 
     except KeyboardInterrupt:
         print("Captura de pacotes encerrada.")
+    except Exception as e:
+        print(f"Erro ao capturar pacotes: {e}")
+    finally:
         if data_to_write:
             with open(output_file, "a") as file:
                 json.dump(data_to_write, file)
                 file.write("\n")
+        if raw_socket:
+            raw_socket.close()
 
 capture_packets("eth0", "captured_packets.json")

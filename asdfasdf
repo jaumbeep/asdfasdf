@@ -1,5 +1,6 @@
 import socket
 import struct
+import json
 
 def init_raw_socket(interface):
     try:
@@ -21,18 +22,35 @@ def parse_packet(packet):
 
     return dst_mac, src_mac, proto
 
-def capture_packets(interface):
+def capture_packets(interface, output_file):
     raw_socket = init_raw_socket(interface)
     if raw_socket is None:
         return
 
     try:
+        data_to_write = []
+
         while True:
             packet = raw_socket.recvfrom(65535)[0]
             dst_mac, src_mac, proto = parse_packet(packet)
-            print(f"Destino: {dst_mac}, Origem: {src_mac}, Protocolo: 0x{proto}")
+
+            data_to_write.append({
+                "Destino": dst_mac,
+                "Origem": src_mac,
+                "Protocolo": "0x" + proto
+            })
+
+            if len(data_to_write) >= 10:
+                with open(output_file, "a") as file:
+                    json.dump(data_to_write, file)
+                    file.write("\n")
+                data_to_write = []
 
     except KeyboardInterrupt:
         print("Captura de pacotes encerrada.")
+        if data_to_write:
+            with open(output_file, "a") as file:
+                json.dump(data_to_write, file)
+                file.write("\n")
 
-capture_packets("eth0")
+capture_packets("eth0", "captured_packets.json")
